@@ -2,32 +2,6 @@ import AppKit
 import ServiceManagement
 import SwiftUI
 
-enum Page: String, CaseIterable, Identifiable {
-    case overview, devices, app, connect, logs
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .overview: "Overview"
-        case .devices: "Devices"
-        case .app: "App & Metro"
-        case .connect: "Connect agents"
-        case .logs: "Logs"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .overview: "square.grid.2x2.fill"
-        case .devices: "iphone.gen3"
-        case .app: "shippingbox.fill"
-        case .connect: "point.3.connected.trianglepath.dotted"
-        case .logs: "text.alignleft"
-        }
-    }
-}
-
 @MainActor
 final class AppModel: ObservableObject {
     static let shared = AppModel()
@@ -39,7 +13,7 @@ final class AppModel: ObservableObject {
 
     @AppStorage("startHostOnLaunch") var startHostOnLaunch = true
     @AppStorage("onboardingCompleted") var onboardingCompleted = false
-    @Published var page: Page = .overview
+    @Published var showLogs = false
     @Published var showOnboarding = false
     @Published private(set) var takingOver = false
 

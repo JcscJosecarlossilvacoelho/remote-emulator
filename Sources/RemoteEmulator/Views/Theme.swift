@@ -406,3 +406,108 @@ struct Callout: View {
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(tint.opacity(0.10)))
     }
 }
+
+// MARK: - Compact controls
+
+/// iOS-style switch drawn in SwiftUI (renders offscreen, unlike Toggle).
+struct PillSwitch: View {
+    let isOn: Bool
+    var tint: Color = Theme.ok
+    var busy = false
+    var disabled = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: isOn ? .trailing : .leading) {
+                Capsule()
+                    .fill(isOn ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(Color.primary.opacity(0.14)))
+                    .frame(width: 36, height: 21)
+                Circle()
+                    .fill(.white)
+                    .shadow(color: .black.opacity(0.18), radius: 1.5, y: 1)
+                    .frame(width: 17, height: 17)
+                    .padding(2)
+                    .overlay {
+                        if busy { ProgressView().controlSize(.mini).scaleEffect(0.6) }
+                    }
+            }
+            .animation(.spring(duration: 0.22), value: isOn)
+            .opacity(disabled ? 0.45 : 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled || busy)
+    }
+}
+
+/// Small uppercase section title used in the inspector.
+struct SectionLabel: View {
+    let text: String
+    var body: some View {
+        Text(text.uppercased())
+            .font(.system(size: 10.5, weight: .bold))
+            .tracking(0.8)
+            .foregroundStyle(.secondary)
+    }
+}
+
+/// A ScrollView that becomes a plain stack offscreen (ImageRenderer can't draw scroll views).
+struct AdaptiveScroll<Content: View>: View {
+    @ViewBuilder var content: Content
+    @Environment(\.snapshotMode) private var snapshotMode
+
+    var body: some View {
+        if snapshotMode {
+            content.frame(maxHeight: .infinity, alignment: .top).clipped()
+        } else {
+            ScrollView { content }
+        }
+    }
+}
+
+/// Full-width gradient call-to-action.
+struct BrandButton: View {
+    let title: String
+    let symbol: String
+    var disabled = false
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(disabled ? AnyShapeStyle(Color.gray.opacity(0.5)) : AnyShapeStyle(Theme.brand))
+                        .shadow(color: .purple.opacity(disabled ? 0 : (hovering ? 0.45 : 0.28)), radius: hovering ? 10 : 6, y: 3)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovering)
+    }
+}
+
+/// Borderless text/icon menu that draws as a plain label offscreen.
+struct CompactMenu<Label: View, Items: View>: View {
+    @ViewBuilder var label: Label
+    @ViewBuilder var items: Items
+    @Environment(\.snapshotMode) private var snapshotMode
+
+    var body: some View {
+        if snapshotMode {
+            label.foregroundStyle(Color.accentColor)
+        } else {
+            Menu { items } label: { label }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+        }
+    }
+}

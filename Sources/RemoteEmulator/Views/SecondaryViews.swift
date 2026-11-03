@@ -99,11 +99,11 @@ struct MenuBarView: View {
             .controlSize(.small)
 
             Button {
-                host.copy(host.connectCommand(.posix))
+                host.copy(host.agentPrompt)
                 copied = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
             } label: {
-                Label(copied ? "Copied!" : "Copy connect command", systemImage: copied ? "checkmark" : "doc.on.clipboard")
+                Label(copied ? "Prompt copied!" : "Copy prompt for remote agent", systemImage: copied ? "checkmark" : "sparkles")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)

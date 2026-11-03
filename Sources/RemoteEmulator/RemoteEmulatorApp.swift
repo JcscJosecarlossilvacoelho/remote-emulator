@@ -9,13 +9,13 @@ struct RemoteEmulatorApp: App {
 
     var body: some Scene {
         Window("Remote Emulator", id: "dashboard") {
-            RootView()
+            MainView()
                 .withServices(model)
-                .frame(minWidth: 1080, minHeight: 720)
+                .frame(minWidth: 900, minHeight: 600)
                 .onAppear { model.boot() }
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1240, height: 820)
+        .defaultSize(width: 1080, height: 720)
 
         MenuBarExtra {
             MenuBarView(openDashboard: { openWindow(id: "dashboard"); model.openDashboard() })
@@ -53,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in AppModel.shared.boot() }
         let args = CommandLine.arguments
         if let index = args.firstIndex(of: "--screenshot"), index + 1 < args.count {
-            let page = args.firstIndex(of: "--page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "overview"
+            let page = args.firstIndex(of: "--page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "main"
             Task { @MainActor in await Screenshot.capture(page: page, to: URL(fileURLWithPath: args[index + 1])) }
         }
     }
@@ -66,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// `RemoteEmulator --screenshot out.png [--page overview|devices|app|connect|onboarding]`
+/// `RemoteEmulator --screenshot out.png [--page main|onboarding]`
 /// renders a page offscreen (machine details hidden) for the README, then quits.
 enum Screenshot {
     @MainActor
@@ -76,26 +76,9 @@ enum Screenshot {
         model.setup.demoMode = true
         try? await Task.sleep(for: .seconds(10))
 
-        let content: AnyView
-        if page == "onboarding" {
-            content = AnyView(OnboardingView(step: .requirements).frame(width: 780, height: 600))
-        } else {
-            let selected = Page(rawValue: page) ?? .overview
-            content = AnyView(
-                HStack(spacing: 0) {
-                    Sidebar().frame(maxHeight: .infinity)
-                    Divider()
-                    PageContent(page: selected)
-                        .padding(.horizontal, 32)
-                        .padding(.top, 40)
-                        .padding(.bottom, 32)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                .onAppear { model.page = selected }
-                .frame(width: 1280, height: 860, alignment: .top)
-                .background(Theme.canvas)
-            )
-        }
+        let content: AnyView = page == "onboarding"
+            ? AnyView(OnboardingView(step: .requirements).frame(width: 780, height: 600))
+            : AnyView(MainView().frame(width: 1080, height: 720))
 
         // Render offscreen with SwiftUI: needs no Screen Recording permission.
         let renderer = ImageRenderer(content:

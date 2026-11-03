@@ -128,7 +128,6 @@ struct OnboardingView: View {
     private func finish() {
         model.onboardingCompleted = true
         model.showOnboarding = false
-        model.page = .overview
     }
 }
 

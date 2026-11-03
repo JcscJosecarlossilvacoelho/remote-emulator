@@ -151,8 +151,8 @@ How runs are confined:
 
 | | Claude Code | Codex |
 |---|---|---|
-| Writes | Project folder only (file tools + OS sandbox) | Project folder only (`workspace-write` sandbox) |
-| Reads | Project folder + toolchains; rest of `~` denied | Not restricted by Codex's sandbox |
+| Writes | Project folder only (file tools + OS sandbox) | Project folder only (permissions profile) |
+| Reads | Project folder + toolchains; rest of `~` denied | Project folder + toolchains; rest of `~` denied |
 | Network | npm and GitHub only | Off |
 | MCP / hooks | Off (`--strict-mcp-config`, `disableAllHooks`) | Your `config.toml` ignored; only agent-device MCP |
 | Devices | `agent-device` runs outside the sandbox | agent-device MCP tools, pre-approved |

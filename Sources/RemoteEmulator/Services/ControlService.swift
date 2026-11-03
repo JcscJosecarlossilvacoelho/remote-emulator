@@ -431,14 +431,7 @@ final class ControlService: ObservableObject {
     /// and MCP servers (e.g. cloud accounts) are off, and WebFetch is denied.
     private func claudeArguments(prompt: String, dir: URL) -> [String] {
         let home = NSHomeDirectory()
-        // Toolchains installed under the home folder (nvm, npm-global, …) must stay readable.
-        var readable = Set([dir.path, "\(home)/.npm"])
-        for tool in ["node", "npm", "npx", "git", "yarn", "pnpm", "bun", "expo", "agent-device"] {
-            guard let path = Shell.which(tool) else { continue }
-            let real = URL(fileURLWithPath: path).resolvingSymlinksInPath()
-            let prefix = real.deletingLastPathComponent().deletingLastPathComponent().path
-            if prefix.hasPrefix(home + "/") { readable.insert(prefix) }
-        }
+        let readable = Set([dir.path, "\(home)/.npm", "\(home)/.gitconfig"] + Self.toolchainPrefixes())
         let settings: [String: Any] = [
             "disableAllHooks": true,
             "permissions": [
@@ -486,11 +479,40 @@ final class ControlService: ObservableObject {
     - Run every `agent-device` and `re-metro` command on its own line as a single command: no `&&`, `;`, pipes or `cd` in front (create folders in a separate command first). Combined commands stay sandboxed and can't reach the devices.
     """
 
-    /// Headless Codex in its workspace-write sandbox: writes only inside `dir`.
-    /// Your config.toml (MCP servers, approval overrides) is ignored for these runs.
+    /// Toolchains installed under the home folder (nvm, npm-global, …) must stay readable.
+    nonisolated static func toolchainPrefixes() -> [String] {
+        let home = NSHomeDirectory()
+        var prefixes: [String] = []
+        for tool in ["node", "npm", "npx", "git", "yarn", "pnpm", "bun", "expo", "agent-device"] {
+            guard let path = Shell.which(tool) else { continue }
+            let real = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+            let prefix = real.deletingLastPathComponent().deletingLastPathComponent().path
+            if prefix.hasPrefix(home + "/"), !prefixes.contains(prefix) { prefixes.append(prefix) }
+        }
+        return prefixes
+    }
+
+    /// Codex permissions profile: reads and writes only in the workspace, the system
+    /// runtime and toolchains; the rest of the home folder is denied; no network.
+    nonisolated static func codexPermissions(dir: URL) -> String {
+        func quoted(_ s: String) -> String {
+            "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        }
+        var entries = [#"":minimal"="read""#, #"":tmpdir"="write""#, #""~"="deny""#, #""~/.gitconfig"="read""#]
+        for path in ["/opt/homebrew", "/usr/local"] + toolchainPrefixes() where FileManager.default.fileExists(atPath: path) {
+            entries.append("\(quoted(path))=\"read\"")
+        }
+        entries.append(#"":workspace_roots"={"."="write"}"#)
+        return "permissions.remote-emulator={filesystem={\(entries.joined(separator: ","))},network={enabled=false}}"
+    }
+
+    /// Headless Codex under a permissions profile (no `--sandbox`, which would switch
+    /// Codex back to the legacy modes that can read the whole disk). Your config.toml
+    /// (MCP servers, sandbox_mode) is ignored for these runs.
     private func codexArguments(prompt: String, dir: URL) -> [String] {
-        ["exec", "--sandbox", "workspace-write", "--cd", dir.path, "--skip-git-repo-check",
-         "--ignore-user-config", "--ephemeral",
+        ["exec", "--cd", dir.path, "--skip-git-repo-check", "--ignore-user-config", "--ephemeral",
+         "-c", "default_permissions=\"remote-emulator\"",
+         "-c", Self.codexPermissions(dir: dir),
          "-c", "mcp_servers.agent-device.command=\"agent-device\"",
          "-c", "mcp_servers.agent-device.args=[\"mcp\"]",
         ] + agentDeviceTools.flatMap { ["-c", "mcp_servers.agent-device.tools.\($0).approval_mode=\"approve\""] } + [

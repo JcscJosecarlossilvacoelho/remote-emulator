@@ -181,10 +181,17 @@ final class HostService: ObservableObject {
         Token: \(token)
         Session name: \(sessionName)
 
-        The token is a secret: never print it back, commit it, or write it into project files.
+        Security rules:
+        - The token is a secret: never print it back, commit it, or write it into project files.
+        - Never ask me to paste secrets (this token, Tailscale auth keys) into a shared chat or channel. If your platform has a secure secret request, use it. If a secret was already posted somewhere others can read, tell me to rotate it on the Mac once we are connected.
+        - Never enable Tailscale Funnel or any public URL for the host: that would expose my simulators to the internet behind only this token.
 
         Do these steps one at a time, show me each command before running it, and stop to tell me if one fails:
-        1. Check Tailscale is installed and connected (`tailscale status`). The host URL only works inside my tailnet.
+        1. Join my tailnet. The host URL only works inside it. If `tailscale status` already shows you connected, go to step 2. Otherwise:
+           - Ask me for an auth key. I create it at login.tailscale.com → Settings → Keys → Generate auth key: Ephemeral ON, Reusable OFF, short expiry (e.g. 1 day), and tag:agent if I use tags.
+           - Without root (containers, sandboxes, shared boxes), use userspace networking and keep its files in your own folder: `tailscaled --tun=userspace-networking --state=mem: --socket=<your-dir>/tailscaled.sock --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1055 &`, then `tailscale --socket=<your-dir>/tailscaled.sock up --auth-key=<key> --hostname=<agent-name>`.
+           - In userspace mode, traffic to the tailnet only goes through that proxy: set ALL_PROXY=socks5://localhost:1055/ and HTTP_PROXY/HTTPS_PROXY/http_proxy/https_proxy=http://localhost:1055/ for every command below. Node.js only honours proxy variables with NODE_USE_ENV_PROXY=1 on recent versions; verify with `agent-device devices` in step 6 and tell me if it can't reach the host.
+           - The node is ephemeral: it disappears from my tailnet shortly after you disconnect.
         2. Check Node.js is 22.12 or newer (`node --version`).
         3. Install the same agent-device version as the host: `npm install -g agent-device@\(version)`.
         4. Check the host answers: `curl -s \(remoteURL)/health` must contain "ok":true.

@@ -12,6 +12,7 @@ Android emulators on your Mac — privately, over Tailscale.
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-SwiftUI-orange?logo=swift)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue)
+[![Buy me a coffee](https://img.shields.io/badge/☕-Buy%20me%20a%20coffee-ffdd00)](https://buymeacoffee.com/JcscJosecarlossilvacoelho)
 
 <img src="docs/screenshot.png" alt="Remote Emulator overview" />
 
@@ -79,13 +80,30 @@ Callstack (the engine that actually drives the devices) and
 
 ## Install
 
+**One line** (downloads the latest release into `~/Applications` and opens it):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/JcscJosecarlossilvacoelho/remote-emulator/main/install.sh | bash
+```
+
+<details>
+<summary>Manual download, or build from source</summary>
+
+**Manual:** download `Remote-Emulator.zip` from the
+[latest release](https://github.com/JcscJosecarlossilvacoelho/remote-emulator/releases/latest),
+unzip, move to Applications. The app is open source but **not notarized** (that needs a paid
+Apple Developer account), so macOS blocks it the first time: open **System Settings → Privacy &
+Security** and click **Open Anyway**, or run
+`xattr -dr com.apple.quarantine "/Applications/Remote Emulator.app"`.
+
+**From source:**
+
 ```sh
 git clone https://github.com/JcscJosecarlossilvacoelho/remote-emulator.git
 cd remote-emulator
 ./scripts/build-app.sh --install     # → ~/Applications/Remote Emulator.app
 ```
-
-Prebuilt, notarized releases are on the roadmap — contributions welcome!
+</details>
 
 ## Quick start
 
@@ -151,7 +169,7 @@ agent-device leases a different device to each session. The dashboard shows who 
 
 ## Roadmap
 
-- [ ] Signed & notarized releases + Homebrew cask
+- [ ] Signed & notarized releases + Homebrew cask (needs sponsors for the Apple Developer fee ☕)
 - [ ] Create / delete simulators and AVDs from the app
 - [ ] Per-device policy editor (allowed commands, read-only agents)
 - [ ] Live device thumbnails
@@ -166,6 +184,12 @@ PRs and issues are very welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 swift build && swift run RemoteEmulator   # run from source
 swift test                                # unit tests
 ```
+
+## Support
+
+Remote Emulator is free and open source. If it saves you time (or a $299/month cloud
+simulator bill), you can [**buy me a coffee ☕**](https://buymeacoffee.com/JcscJosecarlossilvacoelho)
+— it helps pay for an Apple Developer account so releases can be signed and notarized.
 
 ## Credits
 

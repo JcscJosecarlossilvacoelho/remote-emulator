@@ -78,7 +78,7 @@ enum Screenshot {
 
         let content: AnyView = page == "onboarding"
             ? AnyView(OnboardingView(step: .requirements).frame(width: 780, height: 600))
-            : AnyView(MainView().frame(width: 1080, height: 720))
+            : AnyView(MainView().frame(width: 1080, height: 820))
 
         // Render offscreen with SwiftUI: needs no Screen Recording permission.
         let renderer = ImageRenderer(content:

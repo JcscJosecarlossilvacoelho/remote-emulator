@@ -49,6 +49,10 @@ private struct TopBar: View {
                 Button("Logs…") { model.showLogs = true }
                 Divider()
                 SettingsLink { Text("Settings…") }
+                Divider()
+                Button("☕ Buy me a coffee") { Links.open(Links.coffee) }
+                Button("Report an issue…") { Links.open(Links.issues) }
+                Button("GitHub repository") { Links.open(Links.repository) }
             }
         }
         .padding(.leading, 84) // room for the window's traffic lights
@@ -277,6 +281,7 @@ private struct Inspector: View {
                 HostSection()
                 Divider()
                 ActivitySection()
+                CoffeeFooter()
             }
             .padding(20)
         }
@@ -480,6 +485,30 @@ private struct ActivityLines: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(red: 0.10, green: 0.10, blue: 0.16)))
+    }
+}
+
+private struct CoffeeFooter: View {
+    @State private var hovering = false
+
+    var body: some View {
+        Button { Links.open(Links.coffee) } label: {
+            HStack(spacing: 10) {
+                Text("☕").font(.system(size: 20))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Enjoying Remote Emulator?").font(.system(size: 12, weight: .semibold))
+                    Text("It's free and open source. Buy me a coffee!").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(red: 1, green: 0.87, blue: 0.0).opacity(hovering ? 0.22 : 0.14)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
     }
 }
 

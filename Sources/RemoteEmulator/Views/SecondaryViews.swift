@@ -112,6 +112,7 @@ struct MenuBarView: View {
             HStack {
                 Button("Open dashboard", action: openDashboard)
                 Spacer()
+                Button("☕") { Links.open(Links.coffee) }.help("Buy me a coffee")
                 Button("Quit") { NSApp.terminate(nil) }
             }
             .buttonStyle(.borderless)

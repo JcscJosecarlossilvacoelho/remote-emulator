@@ -431,6 +431,7 @@ private struct AppSection: View {
 private struct HostSection: View {
     @EnvironmentObject private var host: HostService
     @State private var reveal = false
+    @State private var tokenCopied = false
     @State private var confirmRotate = false
 
     var body: some View {
@@ -440,6 +441,12 @@ private struct HostSection: View {
             HStack(spacing: 2) {
                 InfoRow(label: "Token", value: reveal && !host.demoMode ? host.token : String(repeating: "•", count: 18), monospaced: true)
                 IconButton(symbol: reveal ? "eye.slash" : "eye", help: "Show / hide") { if !host.demoMode { reveal.toggle() } }
+                IconButton(symbol: tokenCopied ? "checkmark" : "doc.on.doc", help: "Copy token") {
+                    guard !host.demoMode else { return }
+                    host.copy(host.token)
+                    tokenCopied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { tokenCopied = false }
+                }
                 IconButton(symbol: "arrow.triangle.2.circlepath", help: "Generate a new token") { confirmRotate = true }
             }
             InfoRow(label: "Engine", value: "agent-device \(host.cliVersion ?? "—")")

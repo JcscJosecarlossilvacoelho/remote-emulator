@@ -77,7 +77,10 @@ final class HostService: ObservableObject {
             do {
                 try process.start("agent-device", [
                     "proxy", "--host", "127.0.0.1", "--port", String(port), "--daemon-auth-token", token,
-                ], cwd: HostPaths.directory, redacting: [token])
+                ], cwd: HostPaths.directory,
+                   // The daemon exits after 5 min idle by default; a host must stay up.
+                   environment: ["AGENT_DEVICE_DAEMON_IDLE_TIMEOUT_MS": "0"],
+                   redacting: [token])
             } catch {
                 status = .failed(error.localizedDescription)
                 return

@@ -136,7 +136,7 @@ agent-device leases a different device to each session. The dashboard shows who 
 |---|---|
 | *Local only — start Tailscale to share* | Start Tailscale; enable MagicDNS and HTTPS certificates in the admin console. |
 | Host shows *Managed outside the app* | A proxy started from a terminal/launchd already owns the port. Stop it there, or keep using it. |
-| *Proxy answers but its daemon does not* | Restart the host (another `agent-device` version may have replaced the daemon). |
+| *Proxy answers but its daemon does not* | The agent-device daemon exits after 5 min idle by default. Remote Emulator starts it with `AGENT_DEVICE_DAEMON_IDLE_TIMEOUT_MS=0` and self-heals; for a host started elsewhere, export that variable before `agent-device proxy`. |
 | Remote gets `401` | Token mismatch — copy the connect command again after rotating. |
 | Remote gets `REMOTE_SESSION_REQUIRED` | Set `AGENT_DEVICE_SESSION` (or pass `--session`). |
 | Android app can't reach Metro | Remote Emulator runs `adb reverse tcp:8081` when Metro starts; restart Metro after booting a new emulator. |

@@ -17,12 +17,13 @@ final class ManagedProcess: ObservableObject {
         self.redact = redact
     }
 
-    func start(_ tool: String, _ args: [String], cwd: URL? = nil, redacting secrets: [String] = []) throws {
+    func start(_ tool: String, _ args: [String], cwd: URL? = nil, environment extra: [String: String] = [:],
+               redacting secrets: [String] = []) throws {
         stop()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = [tool] + args
-        process.environment = Shell.environment
+        process.environment = Shell.environment.merging(extra) { _, new in new }
         if let cwd { process.currentDirectoryURL = cwd }
         process.standardInput = FileHandle.nullDevice
 

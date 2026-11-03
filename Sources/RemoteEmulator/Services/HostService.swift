@@ -25,6 +25,7 @@ final class HostService: ObservableObject {
     }
 
     enum CommandStyle: String, CaseIterable, Identifiable {
+        case prompt = "AI agent prompt"
         case posix = "macOS / Linux"
         case powershell = "Windows PowerShell"
         case claude = "Claude Code (MCP)"
@@ -164,7 +165,36 @@ final class HostService: ObservableObject {
             agent-device connect proxy --daemon-base-url \(remoteURL)
             claude mcp add --transport stdio --scope user agent-device -- agent-device mcp
             """
+        case .prompt:
+            return agentPrompt
         }
+    }
+
+    /// A prompt to paste into Claude Code / Cursor on the agent machine so the
+    /// agent sets itself up, verifies the connection and runs a smoke test.
+    var agentPrompt: String {
+        let version = cliVersion ?? "latest"
+        return """
+        Set up this machine so you can drive the iOS simulators and Android emulators on my Mac (a "device host") with agent-device by Callstack (https://agent-device.dev).
+
+        Host URL: \(remoteURL)
+        Token: \(token)
+        Session name: \(sessionName)
+
+        The token is a secret: never print it back, commit it, or write it into project files.
+
+        Do these steps one at a time, show me each command before running it, and stop to tell me if one fails:
+        1. Check Tailscale is installed and connected (`tailscale status`). The host URL only works inside my tailnet.
+        2. Check Node.js is 22.12 or newer (`node --version`).
+        3. Install the same agent-device version as the host: `npm install -g agent-device@\(version)`.
+        4. Check the host answers: `curl -s \(remoteURL)/health` must contain "ok":true.
+        5. Save AGENT_DEVICE_DAEMON_AUTH_TOKEN (the token) and AGENT_DEVICE_SESSION=\(sessionName) as persistent environment variables for my user (shell profile on macOS/Linux, user environment variables on Windows), so new terminals and MCP clients see them.
+        6. Connect: `agent-device connect proxy --daemon-base-url \(remoteURL)`, then `agent-device devices` and list the devices you see.
+        7. Make agent-device available to you: install the skill with `npx skills add callstack/agent-device`, then register the MCP server — Claude Code: `claude mcp add --transport stdio --scope user agent-device -- agent-device mcp`; Cursor: add {"mcpServers":{"agent-device":{"command":"agent-device","args":["mcp"]}}} to ~/.cursor/mcp.json.
+        8. Smoke test on iOS: `agent-device open com.apple.Preferences --platform ios`, `agent-device snapshot -i`, `agent-device screenshot ./agent-device-check.png`, then `agent-device close`. Show me the screenshot.
+
+        From now on, when testing apps: open → snapshot -i → act (press/fill) → re-snapshot → verify → close. Always `close` when done so the device is released for other agents.
+        """
     }
 
     func copy(_ text: String) {

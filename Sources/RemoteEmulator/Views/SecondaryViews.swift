@@ -1,72 +1,39 @@
 import SwiftUI
 
-// MARK: - Logs
+// MARK: - Log output
 
-struct LogsView: View {
-    enum Source: String, CaseIterable, Identifiable {
-        case host = "Host", metro = "Metro"
-        var id: String { rawValue }
-    }
-
-    @EnvironmentObject private var host: HostService
-    @EnvironmentObject private var metro: MetroService
-    @Environment(\.dismiss) private var dismiss
-    @State private var source: Source = .host
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                SegmentedControl(options: Source.allCases, selection: $source) { $0.rawValue }
-                Spacer()
-                Button("Clear") { process.clear() }
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
-            }
-            .padding(12)
-            Divider()
-            LogText(process: process, externalHint: externalHint)
-        }
-        .frame(width: 820, height: 520)
-    }
-
-    private var process: ManagedProcess { source == .host ? host.process : metro.process }
-
-    private var externalHint: String? {
-        switch source {
-        case .host:
-            if case .external = host.status { return "The host is running outside the app. Its log is at ~/.agent-device-host/host.log." }
-        case .metro:
-            if metro.status == .external { return "Metro is running outside the app. Its log is at ~/.agent-device-host/metro.log." }
-        }
-        return nil
-    }
-}
-
-private struct LogText: View {
+struct LogText: View {
     @ObservedObject var process: ManagedProcess
     let externalHint: String?
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     if let externalHint, process.lines.isEmpty {
-                        Text(externalHint).foregroundStyle(.secondary)
+                        Text(externalHint).foregroundStyle(.white.opacity(0.5))
                     }
                     ForEach(Array(process.lines.enumerated()), id: \.offset) { _, line in
-                        Text(line)
-                            .foregroundStyle(line.contains("ERROR") || line.contains("Error") ? .red : .primary)
+                        Text(line).foregroundStyle(color(for: line))
                     }
                     Color.clear.frame(height: 1).id("bottom")
                 }
                 .font(.system(size: 11.5, design: .monospaced))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .padding(16)
             }
-            .background(Color(nsColor: .textBackgroundColor))
+            .background(Color(red: 0.10, green: 0.10, blue: 0.16))
             .onChange(of: process.lines.count) { proxy.scrollTo("bottom") }
             .onAppear { proxy.scrollTo("bottom") }
         }
+    }
+
+    private func color(for line: String) -> Color {
+        if line.contains("ERROR") || line.contains("Error") { return Color(red: 1, green: 0.45, blue: 0.45) }
+        if line.contains("WARN") { return Color(red: 1, green: 0.8, blue: 0.4) }
+        if line.hasPrefix("—") { return Color(red: 0.6, green: 0.55, blue: 1) }
+        return Color(red: 0.86, green: 0.88, blue: 0.95)
     }
 }
 

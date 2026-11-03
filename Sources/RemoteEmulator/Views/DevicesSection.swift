@@ -28,17 +28,14 @@ struct DevicesSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Devices").font(.title2.weight(.bold))
-                    Text(summary).font(.callout).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 20) {
+            PageHeader(title: "Devices", subtitle: summary) {
+                HStack(spacing: 10) {
+                    SearchField(text: $query, prompt: "Search devices")
+                        .frame(width: 190)
+                    SegmentedControl(options: Filter.allCases, selection: $filter) { $0.rawValue }
+                    IconButton(symbol: "arrow.clockwise", help: "Refresh") { Task { await devices.refresh() } }
                 }
-                Spacer()
-                SearchField(text: $query, prompt: "Search devices")
-                    .frame(width: 190)
-                SegmentedControl(options: Filter.allCases, selection: $filter) { $0.rawValue }
-                IconButton(symbol: "arrow.clockwise", help: "Refresh") { Task { await devices.refresh() } }
             }
 
             if let error = devices.lastError {

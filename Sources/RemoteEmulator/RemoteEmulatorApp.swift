@@ -9,33 +9,35 @@ struct RemoteEmulatorApp: App {
 
     var body: some Scene {
         Window("Remote Emulator", id: "dashboard") {
-            DashboardView()
-                .environmentObject(model)
-                .environmentObject(model.host)
-                .environmentObject(model.metro)
-                .environmentObject(model.devices)
-                .frame(minWidth: 1000, minHeight: 700)
+            RootView()
+                .withServices(model)
+                .frame(minWidth: 1080, minHeight: 720)
                 .onAppear { model.boot() }
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1120, height: 780)
+        .defaultSize(width: 1240, height: 820)
 
         MenuBarExtra {
             MenuBarView(openDashboard: { openWindow(id: "dashboard"); model.openDashboard() })
-                .environmentObject(model)
-                .environmentObject(model.host)
-                .environmentObject(model.metro)
-                .environmentObject(model.devices)
+                .withServices(model)
         } label: {
             MenuBarIcon(host: model.host)
         }
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView()
-                .environmentObject(model)
-                .environmentObject(model.host)
+            SettingsView().withServices(model)
         }
+    }
+}
+
+extension View {
+    func withServices(_ model: AppModel) -> some View {
+        environmentObject(model)
+            .environmentObject(model.host)
+            .environmentObject(model.metro)
+            .environmentObject(model.devices)
+            .environmentObject(model.setup)
     }
 }
 
@@ -51,7 +53,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in AppModel.shared.boot() }
         let args = CommandLine.arguments
         if let index = args.firstIndex(of: "--screenshot"), index + 1 < args.count {
-            Task { @MainActor in await Screenshot.capture(to: URL(fileURLWithPath: args[index + 1])) }
+            let page = args.firstIndex(of: "--page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "overview"
+            Task { @MainActor in await Screenshot.capture(page: page, to: URL(fileURLWithPath: args[index + 1])) }
         }
     }
 
@@ -63,25 +66,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// `RemoteEmulator --screenshot out.png` renders the dashboard (with machine
-/// details hidden) for the README, then quits.
+/// `RemoteEmulator --screenshot out.png [--page overview|devices|app|connect|onboarding]`
+/// renders a page offscreen (machine details hidden) for the README, then quits.
 enum Screenshot {
     @MainActor
-    static func capture(to url: URL) async {
-        AppModel.shared.host.demoMode = true
-        try? await Task.sleep(for: .seconds(10))
-        // Render offscreen with SwiftUI: needs no Screen Recording permission.
+    static func capture(page: String, to url: URL) async {
         let model = AppModel.shared
-        let content = DashboardContent()
-            .background(DashboardView.background)
-            .environment(\.colorScheme, .light)
-            .environment(\.snapshotMode, true)
-            .environmentObject(model)
-            .environmentObject(model.host)
-            .environmentObject(model.metro)
-            .environmentObject(model.devices)
-            .frame(width: 1120)
-        let renderer = ImageRenderer(content: content)
+        model.host.demoMode = true
+        model.setup.demoMode = true
+        try? await Task.sleep(for: .seconds(10))
+
+        let content: AnyView
+        if page == "onboarding" {
+            content = AnyView(OnboardingView(step: .requirements).frame(width: 780, height: 600))
+        } else {
+            let selected = Page(rawValue: page) ?? .overview
+            content = AnyView(
+                HStack(spacing: 0) {
+                    Sidebar().frame(maxHeight: .infinity)
+                    Divider()
+                    PageContent(page: selected)
+                        .padding(.horizontal, 32)
+                        .padding(.top, 40)
+                        .padding(.bottom, 32)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .onAppear { model.page = selected }
+                .frame(width: 1280, height: 860, alignment: .top)
+                .background(Theme.canvas)
+            )
+        }
+
+        // Render offscreen with SwiftUI: needs no Screen Recording permission.
+        let renderer = ImageRenderer(content:
+            content
+                .environment(\.colorScheme, .light)
+                .environment(\.snapshotMode, true)
+                .withServices(model)
+        )
         renderer.scale = 2
         guard let image = renderer.nsImage,
               let tiff = image.tiffRepresentation,

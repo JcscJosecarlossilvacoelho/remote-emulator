@@ -12,6 +12,22 @@ enum Theme {
     static let off = Color.secondary
 
     static func tint(_ platform: Platform) -> Color { platform == .ios ? ios : android }
+
+    static let canvas = Color(nsColor: .windowBackgroundColor)
+    static let sidebar = Color.primary.opacity(0.035)
+
+    static let heroReady = LinearGradient(
+        colors: [Color(red: 0.30, green: 0.22, blue: 0.92), Color(red: 0.62, green: 0.25, blue: 0.93), Color(red: 0.93, green: 0.36, blue: 0.70)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+    static let heroWarn = LinearGradient(
+        colors: [Color(red: 0.96, green: 0.55, blue: 0.16), Color(red: 0.93, green: 0.33, blue: 0.33)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+    static let heroOff = LinearGradient(
+        colors: [Color(red: 0.20, green: 0.22, blue: 0.30), Color(red: 0.33, green: 0.35, blue: 0.46)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
 }
 
 /// Rounded panel used for every section of the dashboard.
@@ -254,4 +270,139 @@ struct AnyPrimitiveButtonStyle: PrimitiveButtonStyle {
     private let make: (Configuration) -> AnyView
     init<S: PrimitiveButtonStyle>(_ style: S) { make = { AnyView(style.makeBody(configuration: $0)) } }
     func makeBody(configuration: Configuration) -> some View { make(configuration) }
+}
+
+// MARK: - Brand & page building blocks
+
+/// The app mark: a phone with signal waves on the brand gradient.
+struct AppGlyph: View {
+    var size: CGFloat = 40
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+            .fill(Theme.brand)
+            .frame(width: size, height: size)
+            .overlay(
+                Image(systemName: "iphone.radiowaves.left.and.right")
+                    .font(.system(size: size * 0.46, weight: .semibold))
+                    .foregroundStyle(.white)
+            )
+            .shadow(color: Color.purple.opacity(0.35), radius: size * 0.15, y: size * 0.06)
+    }
+}
+
+struct PageHeader<Trailing: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder var trailing: Trailing
+
+    var body: some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.system(size: 28, weight: .bold, design: .rounded))
+                Text(subtitle).font(.callout).foregroundStyle(.secondary)
+            }
+            Spacer()
+            trailing
+        }
+    }
+}
+
+extension PageHeader where Trailing == EmptyView {
+    init(title: String, subtitle: String) {
+        self.init(title: title, subtitle: subtitle, trailing: { EmptyView() })
+    }
+}
+
+struct StatTile: View {
+    let title: String
+    let value: String
+    let detail: String
+    let symbol: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: symbol)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(tint.opacity(0.14)))
+                Spacer()
+            }
+            Text(value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.callout.weight(.semibold))
+                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.06)))
+    }
+}
+
+/// Monospaced command block with a copy button. `display` can mask secrets
+/// while `copyText` holds the real value.
+struct CodeBlock: View {
+    let display: String
+    var copyText: String?
+    @State private var copied = false
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Text(display)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(Color(red: 0.86, green: 0.88, blue: 0.95))
+                .lineSpacing(4)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .padding(.trailing, 70)
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(copyText ?? display, forType: .string)
+                copied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+            } label: {
+                Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(copied ? 0.25 : 0.12)))
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+            .padding(10)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(red: 0.10, green: 0.10, blue: 0.16))
+        )
+    }
+}
+
+/// Soft callout box (info / warning).
+struct Callout: View {
+    let symbol: String
+    let text: String
+    var tint: Color = .accentColor
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: symbol).foregroundStyle(tint).font(.system(size: 14, weight: .semibold))
+            Text(text).font(.callout).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(tint.opacity(0.10)))
+    }
 }

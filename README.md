@@ -13,7 +13,26 @@ Android emulators on your Mac — privately, over Tailscale.
 ![Swift](https://img.shields.io/badge/Swift-SwiftUI-orange?logo=swift)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue)
 
-<img src="docs/screenshot.png" alt="Remote Emulator dashboard" />
+<img src="docs/screenshot.png" alt="Remote Emulator overview" />
+
+<table>
+<tr>
+<td><img src="docs/onboarding.png" alt="Guided setup" /></td>
+<td><img src="docs/devices.png" alt="Multi-device grid" /></td>
+</tr>
+<tr>
+<td align="center"><b>Guided setup</b> — checks Xcode, Android SDK, Node, agent-device and Tailscale</td>
+<td align="center"><b>Multi-device</b> — every simulator & emulator, and which agent uses which</td>
+</tr>
+<tr>
+<td><img src="docs/connect.png" alt="Connect agents" /></td>
+<td><img src="docs/app.png" alt="App and Metro" /></td>
+</tr>
+<tr>
+<td align="center"><b>Connect agents</b> — a ready-made prompt your AI agent runs to set itself up</td>
+<td align="center"><b>App & Metro</b> — pick your Expo / React Native app, Metro handled for you</td>
+</tr>
+</table>
 
 </div>
 
@@ -43,6 +62,12 @@ Callstack (the engine that actually drives the devices) and
 
 ## Features
 
+- 🪄 **Guided setup** — a 5-step onboarding checks Xcode, Android SDK, Node.js, agent-device
+  (one-click install) and Tailscale, starts the host and picks your app. Found an older
+  terminal/launchd host? *Take over* archives it and runs everything from the app.
+- 🤖 **AI agent prompt** — copy one prompt into Claude Code or Cursor on the other machine and
+  the agent installs agent-device, saves the token, connects, registers the MCP server and runs
+  a smoke test by itself.
 - 📱 **Multi-device** — every iOS simulator and Android emulator on the Mac in one grid.
   Boot / shut down with a click, filter by platform, search, and see **which agent session
   is using which device** right now.
@@ -79,16 +104,14 @@ Prebuilt, notarized releases are on the roadmap — contributions welcome!
 
 ## Quick start
 
-1. **Open Remote Emulator.** The host starts automatically and the header turns
-   *Ready for agents* once Tailscale is sharing it.
+1. **Open Remote Emulator** and follow the setup guide (requirements → host → app → connect).
 2. **Boot the devices** you want agents to use (or let agents boot them).
-3. **Pick your app** in the Metro card (*App → Choose folder…*) and press *Start Metro*.
-   Install the app once on each device: Expo Go, or a development build
+3. Install your app once on each device: Expo Go, or a development build
    (`npx expo run:ios` / `npx expo run:android`).
-4. **Copy the connect command** (Remote access card) and send it to the other machine through a
-   secure channel — it contains the token.
+4. **Connect agents → AI agent prompt → Copy**, and paste it into Claude Code / Cursor on the
+   other machine (through a secure channel — it contains the token). The agent does the rest.
 
-On the agent machine:
+Prefer doing it by hand? On the agent machine:
 
 ```sh
 export AGENT_DEVICE_DAEMON_AUTH_TOKEN='<token>'

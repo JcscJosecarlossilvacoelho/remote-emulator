@@ -40,7 +40,12 @@ final class HostService: ObservableObject {
     /// False when the proxy answers but its agent-device daemon does not.
     @Published private(set) var daemonHealthy = true
 
-    let process = ManagedProcess(name: "agent-device proxy")
+    let process = ManagedProcess(name: "agent-device proxy",
+                                 logFile: HostPaths.directory.appendingPathComponent("proxy.log"))
+    /// True while the user wants the host up: a proxy that dies on its own is restarted.
+    private var wantsRunning = false
+    /// Keeps the Mac from idle-sleeping while it hosts, so remote agents don't lose it.
+    private var noSleep: NSObjectProtocol?
     var port: Int { UserDefaults.standard.object(forKey: "proxyPort") as? Int ?? 4310 }
     var sessionName: String { UserDefaults.standard.string(forKey: "sessionName") ?? "remote-agent" }
 
@@ -63,6 +68,12 @@ final class HostService: ObservableObject {
     func start() {
         guard !process.isRunning else { return }
         status = .starting
+        wantsRunning = true
+        if noSleep == nil {
+            noSleep = ProcessInfo.processInfo.beginActivity(
+                options: [.idleSystemSleepDisabled, .suddenTerminationDisabled],
+                reason: "Hosting simulators for remote agents")
+        }
         Task {
             // Never start a second proxy on a port that already answers.
             if let version = await health() {
@@ -100,8 +111,11 @@ final class HostService: ObservableObject {
     }
 
     func stop() {
+        wantsRunning = false
         process.stop()
         status = .stopped
+        if let noSleep { ProcessInfo.processInfo.endActivity(noSleep) }
+        noSleep = nil
     }
 
     func rotateToken() {
@@ -139,10 +153,20 @@ final class HostService: ObservableObject {
                 unhealthyPolls = 0
                 restart()
             }
+        } else if wantsRunning, !process.isRunning {
+            // Our proxy died on its own (crash, killed): bring it back so agents reconnect.
+            restartAttempts += 1
+            process.appendNote("proxy is down — restarting (attempt \(restartAttempts))")
+            status = .stopped
+            if restartAttempts <= 5 || restartAttempts % 20 == 0 { start() }
+            return
         } else if status.isUp {
             status = process.isRunning ? .failed("The proxy stopped answering.") : .stopped
         }
+        if case .running = status { restartAttempts = 0 }
     }
+
+    private var restartAttempts = 0
 
     func restart() {
         stop()
@@ -202,7 +226,7 @@ final class HostService: ObservableObject {
 
         Do these steps one at a time, show me each command before running it, and stop to tell me if one fails:
         1. Join my tailnet. The host URL only works inside it. If `tailscale status` already shows you connected, go to step 2. Otherwise:
-           - Ask me for an auth key. I create it at login.tailscale.com → Settings → Keys → Generate auth key: Ephemeral ON, Reusable OFF, short expiry (e.g. 1 day), and tag:agent if I use tags.
+           - Ask me for an auth key through your secure secret request. I create it at login.tailscale.com → Settings → Keys → Generate auth key: Ephemeral ON, tag:agent, short expiry. Reusable OFF if you run on one persistent machine; Reusable ON only if your sandbox restarts (a single-use key can't rejoin after a restart), and then keep it only in your secret store.
            - Without root (containers, sandboxes, shared boxes), use userspace networking and keep its files in your own folder: `tailscaled --tun=userspace-networking --state=mem: --socket=<your-dir>/tailscaled.sock --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1055 &`, then `tailscale --socket=<your-dir>/tailscaled.sock up --auth-key=<key> --hostname=<agent-name>`.
            - In userspace mode, traffic to the tailnet only goes through that proxy: set ALL_PROXY=socks5://localhost:1055/ and HTTP_PROXY/HTTPS_PROXY/http_proxy/https_proxy=http://localhost:1055/ for every command below. Node.js only honours proxy variables with NODE_USE_ENV_PROXY=1 on recent versions; verify with `agent-device devices` in step 6 and tell me if it can't reach the host.
            - The node is ephemeral: it disappears from my tailnet shortly after you disconnect.
@@ -213,6 +237,12 @@ final class HostService: ObservableObject {
         6. Connect: `agent-device connect proxy --daemon-base-url \(remoteURL)`, then `agent-device devices` and list the devices you see.
         7. Make agent-device available to you: install the skill with `npx skills add callstack/agent-device`, then register the MCP server — Claude Code: `claude mcp add --transport stdio --scope user agent-device -- agent-device mcp`; Cursor: add {"mcpServers":{"agent-device":{"command":"agent-device","args":["mcp"]}}} to ~/.cursor/mcp.json.
         8. Smoke test on iOS: `agent-device open com.apple.Preferences --platform ios`, `agent-device snapshot -i`, `agent-device screenshot ./agent-device-check.png`, then `agent-device close`. Show me the screenshot.
+
+        If you lose access later, check in this order before asking me anything:
+        a. `tailscale status` (with --socket=… in userspace mode). If tailscaled is gone (sandbox restart), start it and run `tailscale up` again with the key from your secret store.
+        b. `curl -s \(remoteURL)/health`. If it doesn't answer while you are on the tailnet, my Mac is asleep, offline or the app is closed: tell me.
+        c. If health is ok but you get "Invalid proxy token", the token was rotated: ask me for the new one through your secure secret request.
+        d. Run `agent-device connect proxy --daemon-base-url \(remoteURL)` again.
 
         From now on, when testing apps: open → snapshot -i → act (press/fill) → re-snapshot → verify → close. Always `close` when done so the device is released for other agents.
         """

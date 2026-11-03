@@ -11,10 +11,13 @@ final class ManagedProcess: ObservableObject {
     private var process: Process?
     private let maxLines = 1_000
     private let redact: [String]
+    /// Output is also appended here (already redacted), so crashes can be diagnosed after the fact.
+    private let logFile: URL?
 
-    init(name: String, redact: [String] = []) {
+    init(name: String, redact: [String] = [], logFile: URL? = nil) {
         self.name = name
         self.redact = redact
+        self.logFile = logFile
     }
 
     func start(_ tool: String, _ args: [String], cwd: URL? = nil, environment extra: [String: String] = [:],
@@ -70,9 +73,32 @@ final class ManagedProcess: ObservableObject {
 
     func clear() { lines.removeAll() }
 
+    /// A line from the app itself (not the child), shown in the logs.
+    func appendNote(_ note: String) { append("— \(note) —\n") }
+
     private func append(_ text: String) {
         let stripped = text.replacingOccurrences(of: "\u{1B}\\[[0-9;]*[A-Za-z]", with: "", options: .regularExpression)
-        lines.append(contentsOf: stripped.split(whereSeparator: \.isNewline).map(String.init))
+        let new = stripped.split(whereSeparator: \.isNewline).map(String.init)
+        lines.append(contentsOf: new)
         if lines.count > maxLines { lines.removeFirst(lines.count - maxLines) }
+        writeToLogFile(new)
+    }
+
+    private func writeToLogFile(_ new: [String]) {
+        guard let logFile, !new.isEmpty else { return }
+        let fm = FileManager.default
+        // Keep the file small: start over past 1 MB.
+        if let size = try? fm.attributesOfItem(atPath: logFile.path)[.size] as? Int, size > 1_000_000 {
+            try? fm.removeItem(at: logFile)
+        }
+        if !fm.fileExists(atPath: logFile.path) {
+            fm.createFile(atPath: logFile.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        }
+        guard let handle = try? FileHandle(forWritingTo: logFile) else { return }
+        defer { try? handle.close() }
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        let text = new.map { "\(stamp) \($0)\n" }.joined()
+        _ = try? handle.seekToEnd()
+        try? handle.write(contentsOf: Data(text.utf8))
     }
 }

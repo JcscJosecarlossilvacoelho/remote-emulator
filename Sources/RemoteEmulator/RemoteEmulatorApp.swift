@@ -76,9 +76,11 @@ enum Screenshot {
         model.setup.demoMode = true
         try? await Task.sleep(for: .seconds(10))
 
-        let content: AnyView = page == "onboarding"
-            ? AnyView(OnboardingView(step: .requirements).frame(width: 780, height: 600))
-            : AnyView(MainView().frame(width: 1080, height: 820))
+        let content: AnyView = switch page {
+        case "onboarding": AnyView(OnboardingView(step: .requirements).frame(width: 780, height: 600))
+        case "support": AnyView(SupportSheet().background(Theme.canvas))
+        default: AnyView(MainView().frame(width: 1080, height: 820))
+        }
 
         // Render offscreen with SwiftUI: needs no Screen Recording permission.
         let renderer = ImageRenderer(content:

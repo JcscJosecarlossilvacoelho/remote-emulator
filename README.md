@@ -201,4 +201,4 @@ Remote Emulator is an independent project, not affiliated with Callstack, Tailsc
 
 ## License
 
-[MIT](LICENSE) © 2026 José Coelho
+[MIT](LICENSE) © 2026 [José Coelho](https://josecoelho-dev.vercel.app)

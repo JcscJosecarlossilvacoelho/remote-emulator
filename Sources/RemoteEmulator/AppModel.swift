@@ -14,6 +14,13 @@ final class AppModel: ObservableObject {
     @AppStorage("startHostOnLaunch") var startHostOnLaunch = true
     @AppStorage("onboardingCompleted") var onboardingCompleted = false
     @Published var showLogs = false
+    @Published var showSupport = false
+
+    // Gentle support prompt: only after real use, at most every two weeks.
+    @AppStorage("launchCount") private var launchCount = 0
+    @AppStorage("firstLaunch") private var firstLaunch: Double = 0
+    @AppStorage("lastSupportPrompt") private var lastSupportPrompt: Double = 0
+    @AppStorage("supportPromptDisabled") private var supportPromptDisabled = false
     @Published var showOnboarding = false
     @Published private(set) var takingOver = false
 
@@ -36,6 +43,7 @@ final class AppModel: ObservableObject {
     func boot() {
         guard pollTask == nil else { return }
         if !onboardingCompleted && !isScreenshotRun { showOnboarding = true }
+        scheduleSupportPrompt()
         pollTask = Task { [weak self] in
             guard let self else { return }
             await setup.runChecks()
@@ -51,6 +59,30 @@ final class AppModel: ObservableObject {
                 try? await Task.sleep(for: .seconds(3))
             }
         }
+    }
+
+    private func scheduleSupportPrompt() {
+        guard !isScreenshotRun else { return }
+        let now = Date().timeIntervalSince1970
+        if firstLaunch == 0 { firstLaunch = now }
+        launchCount += 1
+        let day: Double = 86_400
+        let forced = CommandLine.arguments.contains("--show-support")
+        guard forced || (onboardingCompleted && !supportPromptDisabled && launchCount >= 5
+                         && now - firstLaunch >= 3 * day && now - lastSupportPrompt >= 14 * day)
+        else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(forced ? 2 : 20))
+            guard !showOnboarding else { return }
+            lastSupportPrompt = Date().timeIntervalSince1970
+            showSupport = true
+        }
+    }
+
+    /// `never` = the user already supported (or doesn't want to be asked again).
+    func closeSupportPrompt(never: Bool) {
+        if never { supportPromptDisabled = true }
+        showSupport = false
     }
 
     /// Stops hosts started outside the app (LaunchAgents), then runs them from here.

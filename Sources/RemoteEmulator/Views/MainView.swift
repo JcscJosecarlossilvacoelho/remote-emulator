@@ -25,6 +25,9 @@ struct MainView: View {
         .sheet(isPresented: $model.showLogs) {
             LogsSheet().withServices(model)
         }
+        .sheet(isPresented: $model.showSupport) {
+            SupportSheet().environmentObject(model)
+        }
     }
 }
 
@@ -51,6 +54,7 @@ private struct TopBar: View {
                 SettingsLink { Text("Settings…") }
                 Divider()
                 Button("☕ Buy me a coffee") { Links.open(Links.coffee) }
+                Button("About the author") { Links.open(Links.author) }
                 Button("Report an issue…") { Links.open(Links.issues) }
                 Button("GitHub repository") { Links.open(Links.repository) }
             }

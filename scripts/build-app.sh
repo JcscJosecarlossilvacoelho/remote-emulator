@@ -33,6 +33,7 @@ if [[ ! -f Resources/AppIcon.icns ]]; then
   iconutil -c icns "$ICONSET" -o Resources/AppIcon.icns
 fi
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp Resources/author.jpg "$APP/Contents/Resources/author.jpg"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

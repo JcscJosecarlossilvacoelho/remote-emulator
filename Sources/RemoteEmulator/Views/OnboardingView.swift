@@ -96,7 +96,7 @@ struct OnboardingView: View {
                 Text(primaryTitle).frame(minWidth: 120)
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.42, green: 0.28, blue: 0.95))
+            .tint(Theme.accent)
             .controlSize(.large)
             .keyboardShortcut(.defaultAction)
             .disabled(blockingHint != nil)
@@ -138,8 +138,12 @@ private struct WelcomeStep: View {
         VStack(spacing: 22) {
             AppGlyph(size: 92).padding(.top, 8)
             VStack(spacing: 8) {
-                Text("Welcome to Remote Emulator")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                (Text("Your Mac, ").font(Theme.display(34))
+                    + Text("any agent.").font(Theme.serif(38)).foregroundColor(Theme.accent))
+                    .tracking(-0.8)
+                Text("WELCOME TO REMOTE EMULATOR")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced)).tracking(1.2)
+                    .foregroundStyle(.secondary)
                 Text("Turn this Mac into a device host for AI agents. Claude Code, Cursor or any agent on another machine can drive your iOS simulators and Android emulators — privately.")
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
@@ -148,8 +152,8 @@ private struct WelcomeStep: View {
             }
             HStack(spacing: 14) {
                 feature("iphone.gen3", "Multi-device", "Every simulator & emulator, one place. See which agent uses which.", Theme.ios)
-                feature("lock.shield.fill", "Private", "Tailnet-only HTTPS + token. Never on the public internet.", .teal)
-                feature("sparkles", "Any agent", "Claude Code, Cursor, MCP or plain CLI — from any OS.", .purple)
+                feature("lock.shield.fill", "Private", "Tailnet-only HTTPS + token. Never on the public internet.", Theme.accent)
+                feature("sparkles", "Any agent", "Claude Code, Cursor, MCP or plain CLI — from any OS.", Theme.agent)
             }
             .padding(.top, 6)
         }
@@ -168,7 +172,7 @@ private struct WelcomeStep: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(nsColor: .controlBackgroundColor)))
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.06)))
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -179,7 +183,7 @@ private struct StepTitle: View {
     let subtitle: String
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.system(size: 24, weight: .bold, design: .rounded))
+            Text(title).font(Theme.display(24)).tracking(-0.6)
             Text(subtitle).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -230,7 +234,7 @@ private struct RequirementsStep: View {
                     }
                 }
             }
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(nsColor: .controlBackgroundColor)))
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.06)))
 
             if let error = setup.installError {
@@ -285,7 +289,7 @@ private struct HostStep: View {
 
             if !setup.externalAgents.isEmpty {
                 HStack(spacing: 12) {
-                    Image(systemName: "arrow.triangle.branch").foregroundStyle(.blue).font(.title3)
+                    Image(systemName: "arrow.triangle.branch").foregroundStyle(Theme.accent).font(.title3)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Found an existing host setup").font(.headline)
                         Text("\(setup.externalAgents.count) LaunchAgent\(setup.externalAgents.count == 1 ? "" : "s") already run agent-device or Metro. Let the app take over — they're archived in ~/.agent-device-host, not deleted.")
@@ -301,7 +305,7 @@ private struct HostStep: View {
                     .disabled(model.takingOver)
                 }
                 .padding(14)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.blue.opacity(0.08)))
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.accent.opacity(0.08)))
             }
 
             HStack(spacing: 18) {
@@ -329,7 +333,7 @@ private struct HostStep: View {
                 }
             }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(nsColor: .controlBackgroundColor)))
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.06)))
 
             if case .failed(let message) = host.status {
@@ -350,7 +354,7 @@ private struct HostStep: View {
     private var statusColor: Color {
         switch host.status {
         case .running, .external: host.isPrivatelyShared ? Theme.ok : Theme.warn
-        case .starting: .purple
+        case .starting: Theme.agent
         case .failed: .red
         case .stopped: .secondary
         }
@@ -403,7 +407,7 @@ private struct AppStep: View {
                     Text(metro.app == nil ? "Browse" : "Change").font(.callout.weight(.semibold)).foregroundStyle(.orange)
                 }
                 .padding(18)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(nsColor: .controlBackgroundColor)))
+                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.orange.opacity(metro.app == nil ? 0.15 : 0.45), style: StrokeStyle(lineWidth: 1.5, dash: metro.app == nil ? [6, 5] : [])))
                 .contentShape(Rectangle())
             }
@@ -419,7 +423,7 @@ private struct AppStep: View {
                     switch metro.status {
                     case .stopped:
                         Button { metro.start() } label: { Label("Start Metro", systemImage: "play.fill") }
-                            .buttonStyle(.borderedProminent).tint(.orange)
+                            .buttonStyle(.borderedProminent).tint(Theme.warn)
                     case .starting: ProgressView().controlSize(.small)
                     default: Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.ok).font(.title2)
                     }
@@ -453,7 +457,7 @@ private struct ConnectStep: View {
                       copyText: host.connectCommand(style))
             Callout(symbol: "sparkles",
                     text: "Running several agents? Give each its own AGENT_DEVICE_SESSION — each gets its own device, and you'll see who's using what in Devices.",
-                    tint: .purple)
+                    tint: Theme.agent)
         }
     }
 }

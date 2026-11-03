@@ -1,40 +1,64 @@
 import SwiftUI
 
 enum Theme {
-    static let ios = Color(red: 0.04, green: 0.52, blue: 1.0)
-    static let android = Color(red: 0.20, green: 0.80, blue: 0.47)
-    static let brand = LinearGradient(
-        colors: [Color(red: 0.38, green: 0.30, blue: 0.98), Color(red: 0.75, green: 0.32, blue: 0.95)],
-        startPoint: .topLeading, endPoint: .bottomTrailing
-    )
-    static let ok = Color.green
-    static let warn = Color.orange
+    // Palette shared with josecoelho.dev: paper, ink, forest, leaf, peach, beard.
+    static let paper = Color(hex: 0xEFE9DF)
+    static let forest = Color(hex: 0x17432C)
+    static let forestDeep = Color(hex: 0x0E2C1D)
+    static let leaf = Color(hex: 0x3FBF7A)
+    static let peach = Color(hex: 0xF2A983)
+    static let beard = Color(hex: 0x5A3726)
+    static let coffee = Color(hex: 0xFFDD00)
+
+    /// Main accent: forest on paper, leaf on dark.
+    static let accent = Color(light: 0x17432C, dark: 0x3FBF7A)
+    static let ios = Color(light: 0xC8693F, dark: 0xF2A983)
+    static let android = Color(light: 0x23965A, dark: 0x3FBF7A)
+    static let agent = Color(light: 0x8A4F33, dark: 0xF2A983)
+    static let brand = LinearGradient(colors: [Color(hex: 0x1F5A3A), forest], startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let ok = Color(light: 0x23965A, dark: 0x3FBF7A)
+    static let warn = Color(light: 0xD0663A, dark: 0xF2A983)
     static let off = Color.secondary
 
     static func tint(_ platform: Platform) -> Color { platform == .ios ? ios : android }
 
-    static let canvas = Color(nsColor: .windowBackgroundColor)
-    static let sidebar = Color.primary.opacity(0.035)
+    static let canvas = Color(light: 0xEFE9DF, dark: 0x0F1813)
+    static let surface = Color(light: 0xF8F4EC, dark: 0x16231B)
+    static let sidebar = Color(light: 0xE6DFD2, dark: 0x0B130F)
+    static let codeBackground = Color(hex: 0x0E2C1D)
+    static let codeText = Color(hex: 0xEFE9DF)
 
-    static let heroReady = LinearGradient(
-        colors: [Color(red: 0.30, green: 0.22, blue: 0.92), Color(red: 0.62, green: 0.25, blue: 0.93), Color(red: 0.93, green: 0.36, blue: 0.70)],
-        startPoint: .topLeading, endPoint: .bottomTrailing
-    )
-    static let heroWarn = LinearGradient(
-        colors: [Color(red: 0.96, green: 0.55, blue: 0.16), Color(red: 0.93, green: 0.33, blue: 0.33)],
-        startPoint: .topLeading, endPoint: .bottomTrailing
-    )
-    static let heroOff = LinearGradient(
-        colors: [Color(red: 0.20, green: 0.22, blue: 0.30), Color(red: 0.33, green: 0.35, blue: 0.46)],
-        startPoint: .topLeading, endPoint: .bottomTrailing
-    )
+    static let heroReady = brand
+    static let heroWarn = LinearGradient(colors: [Color(hex: 0xF2A983), Color(hex: 0xD0663A)], startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let heroOff = LinearGradient(colors: [Color(hex: 0x2A3A31), Color(hex: 0x121512)], startPoint: .topLeading, endPoint: .bottomTrailing)
+
+    /// Display type: heavy and tight, like the site's headlines.
+    static func display(_ size: CGFloat) -> Font { .system(size: size, weight: .heavy) }
+    /// Italic serif accent (New York), like the site's *open-source*.
+    static func serif(_ size: CGFloat) -> Font { .system(size: size, design: .serif).italic() }
+}
+
+extension Color {
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+    }
+
+    /// Adapts to light/dark appearance.
+    init(light: UInt32, dark: UInt32) {
+        func ns(_ hex: UInt32) -> NSColor {
+            NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        }
+        self.init(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? ns(dark) : ns(light)
+        })
+    }
 }
 
 /// Rounded panel used for every section of the dashboard.
 struct Card<Content: View, Accessory: View>: View {
     let title: String
     let symbol: String
-    var tint: Color = .accentColor
+    var tint: Color = Theme.accent
     @ViewBuilder var accessory: Accessory
     @ViewBuilder var content: Content
 
@@ -43,7 +67,7 @@ struct Card<Content: View, Accessory: View>: View {
             HStack(spacing: 10) {
                 Image(systemName: symbol)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.paper)
                     .frame(width: 30, height: 30)
                     .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(tint.gradient))
                 Text(title).font(.headline)
@@ -56,7 +80,7 @@ struct Card<Content: View, Accessory: View>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(Theme.surface)
                 .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
         )
         .overlay(
@@ -128,7 +152,7 @@ struct InfoRow: View {
 struct PrimaryButton: View {
     let title: String
     let symbol: String
-    var tint: Color = .accentColor
+    var tint: Color = Theme.accent
     var destructive = false
     let action: () -> Void
 
@@ -199,7 +223,7 @@ struct SegmentedControl<Value: Hashable & Identifiable>: View {
                         .background {
                             if selected {
                                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                    .fill(Color(nsColor: .controlBackgroundColor))
+                                    .fill(Theme.surface)
                                     .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
                                     .matchedGeometryEffect(id: "selection", in: namespace)
                             }
@@ -243,7 +267,7 @@ struct SearchField: View {
 struct MenuButton<Items: View>: View {
     let title: String
     let symbol: String
-    var tint: Color = .accentColor
+    var tint: Color = Theme.accent
     var prominent = true
     @ViewBuilder var items: Items
     @Environment(\.snapshotMode) private var snapshotMode
@@ -284,9 +308,9 @@ struct AppGlyph: View {
             .overlay(
                 Image(systemName: "iphone.radiowaves.left.and.right")
                     .font(.system(size: size * 0.46, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.paper)
             )
-            .shadow(color: Color.purple.opacity(0.35), radius: size * 0.15, y: size * 0.06)
+            .shadow(color: Theme.forest.opacity(0.35), radius: size * 0.15, y: size * 0.06)
     }
 }
 
@@ -298,7 +322,7 @@ struct PageHeader<Trailing: View>: View {
     var body: some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.system(size: 28, weight: .bold, design: .rounded))
+                Text(title).font(Theme.display(30)).tracking(-0.8)
                 Text(subtitle).font(.callout).foregroundStyle(.secondary)
             }
             Spacer()
@@ -331,7 +355,7 @@ struct StatTile: View {
                 Spacer()
             }
             Text(value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(Theme.display(24)).tracking(-0.5)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             VStack(alignment: .leading, spacing: 1) {
@@ -343,7 +367,7 @@ struct StatTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(Theme.surface)
                 .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
         )
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.06)))
@@ -361,7 +385,7 @@ struct CodeBlock: View {
         ZStack(alignment: .topTrailing) {
             Text(display)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(Color(red: 0.86, green: 0.88, blue: 0.95))
+                .foregroundStyle(Theme.codeText)
                 .lineSpacing(4)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -385,7 +409,7 @@ struct CodeBlock: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(red: 0.10, green: 0.10, blue: 0.16))
+                .fill(Theme.codeBackground)
         )
     }
 }
@@ -394,7 +418,7 @@ struct CodeBlock: View {
 struct Callout: View {
     let symbol: String
     let text: String
-    var tint: Color = .accentColor
+    var tint: Color = Theme.accent
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -445,8 +469,8 @@ struct SectionLabel: View {
     let text: String
     var body: some View {
         Text(text.uppercased())
-            .font(.system(size: 10.5, weight: .bold))
-            .tracking(0.8)
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .tracking(1.0)
             .foregroundStyle(.secondary)
     }
 }
@@ -477,13 +501,13 @@ struct BrandButton: View {
         Button(action: action) {
             Label(title, systemImage: symbol)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.paper)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
                 .background(
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
                         .fill(disabled ? AnyShapeStyle(Color.gray.opacity(0.5)) : AnyShapeStyle(Theme.brand))
-                        .shadow(color: .purple.opacity(disabled ? 0 : (hovering ? 0.45 : 0.28)), radius: hovering ? 10 : 6, y: 3)
+                        .shadow(color: Theme.forest.opacity(disabled ? 0 : (hovering ? 0.45 : 0.28)), radius: hovering ? 10 : 6, y: 3)
                 )
                 .contentShape(Rectangle())
         }
@@ -502,7 +526,7 @@ struct CompactMenu<Label: View, Items: View>: View {
 
     var body: some View {
         if snapshotMode {
-            label.foregroundStyle(Color.accentColor)
+            label.foregroundStyle(Theme.accent)
         } else {
             Menu { items } label: { label }
                 .menuStyle(.borderlessButton)

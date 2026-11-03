@@ -41,7 +41,7 @@ private struct TopBar: View {
     var body: some View {
         HStack(spacing: 12) {
             AppGlyph(size: 26)
-            Text("Remote Emulator").font(.system(size: 15, weight: .bold, design: .rounded))
+            Text("Remote Emulator").font(Theme.display(15)).tracking(-0.3)
             Spacer()
             statusChip
             hostControl
@@ -107,7 +107,7 @@ private struct TopBar: View {
         case .running, .external:
             if !host.daemonHealthy { return .red }
             return host.isPrivatelyShared ? Theme.ok : Theme.warn
-        case .starting: return .purple
+        case .starting: return Theme.agent
         case .failed: return .red
         case .stopped: return .secondary
         }
@@ -236,9 +236,9 @@ private struct DeviceRow: View {
                     }
                     if let owner = device.claimedBy {
                         Label(owner, systemImage: "sparkles")
-                            .foregroundStyle(.purple)
+                            .foregroundStyle(Theme.agent)
                             .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Capsule().fill(Color.purple.opacity(0.1)))
+                            .background(Capsule().fill(Theme.agent.opacity(0.1)))
                             .help("In use by agent session “\(owner)”")
                     }
                 }
@@ -327,7 +327,7 @@ private struct ConnectSection: View {
                 Button(showPreview ? "Hide prompt" : "Preview prompt") {
                     withAnimation(.easeInOut(duration: 0.2)) { showPreview.toggle() }
                 }
-                .buttonStyle(.plain).font(.caption.weight(.medium)).foregroundStyle(Color.accentColor)
+                .buttonStyle(.plain).font(.caption.weight(.medium)).foregroundStyle(Theme.accent)
                 Spacer()
                 CompactMenu {
                     Text("Shell commands ▾").font(.caption.weight(.medium))
@@ -342,13 +342,13 @@ private struct ConnectSection: View {
                 ScrollView {
                     Text(host.agentPrompt.replacingOccurrences(of: host.token, with: "••••••••"))
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(Color(red: 0.86, green: 0.88, blue: 0.95))
+                        .foregroundStyle(Theme.codeText)
                         .textSelection(.enabled)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(height: 220)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(red: 0.10, green: 0.10, blue: 0.16)))
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.codeBackground))
             }
         }
     }
@@ -464,7 +464,7 @@ private struct ActivitySection: View {
                 SectionLabel(text: "Activity")
                 Spacer()
                 Button("Open logs") { model.showLogs = true }
-                    .buttonStyle(.plain).font(.caption.weight(.medium)).foregroundStyle(Color.accentColor)
+                    .buttonStyle(.plain).font(.caption.weight(.medium)).foregroundStyle(Theme.accent)
             }
             ActivityLines(process: host.process)
         }
@@ -485,10 +485,10 @@ private struct ActivityLines: View {
             }
         }
         .font(.system(size: 10.5, design: .monospaced))
-        .foregroundStyle(Color(red: 0.80, green: 0.83, blue: 0.92))
+        .foregroundStyle(Theme.codeText.opacity(0.85))
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(red: 0.10, green: 0.10, blue: 0.16)))
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.codeBackground))
     }
 }
 
@@ -508,7 +508,7 @@ private struct CoffeeFooter: View {
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(red: 1, green: 0.87, blue: 0.0).opacity(hovering ? 0.22 : 0.14)))
+                .fill(Theme.coffee.opacity(hovering ? 0.22 : 0.14)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

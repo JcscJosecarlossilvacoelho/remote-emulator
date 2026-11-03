@@ -21,14 +21,14 @@ struct SupportSheet: View {
                 .frame(width: 84, height: 84)
                 .clipShape(Circle())
                 .overlay(Circle().strokeBorder(.white.opacity(0.2), lineWidth: 2))
-                .shadow(color: Color(red: 0.25, green: 0.75, blue: 0.48).opacity(0.5), radius: 16)
+                .shadow(color: Theme.leaf.opacity(0.5), radius: 16)
                 Text("☕").font(.system(size: 28)).offset(x: 6, y: 4)
             }
             .padding(.top, 6)
 
             VStack(spacing: 8) {
                 Text("Enjoying Remote Emulator?")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(Theme.display(22)).tracking(-0.6)
                 Text("Hi, I'm José 👋 I build Remote Emulator in my free time and keep it free and open source. If it saves you time, a coffee helps me sign the app, keep improving it and ship more open-source tools.")
                     .font(.callout)
                     .foregroundStyle(.secondary)

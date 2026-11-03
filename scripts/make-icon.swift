@@ -22,20 +22,26 @@ NSColor.black.setFill()
 shape.fill()
 NSGraphicsContext.restoreGraphicsState()
 
+// josecoelho.dev palette: forest green with a soft leaf glow.
 NSGradient(colors: [
-    NSColor(red: 0.38, green: 0.30, blue: 0.98, alpha: 1),
-    NSColor(red: 0.75, green: 0.32, blue: 0.95, alpha: 1),
-])!.draw(in: shape, angle: -45)
+    NSColor(red: 0.12, green: 0.35, blue: 0.23, alpha: 1),
+    NSColor(red: 0.055, green: 0.17, blue: 0.11, alpha: 1),
+])!.draw(in: shape, angle: -60)
+NSGraphicsContext.saveGraphicsState()
+shape.addClip()
+NSGradient(colors: [NSColor(red: 0.25, green: 0.75, blue: 0.48, alpha: 0.55), NSColor(red: 0.25, green: 0.75, blue: 0.48, alpha: 0)])!
+    .draw(fromCenter: NSPoint(x: size / 2, y: size * 0.55), radius: 0, toCenter: NSPoint(x: size / 2, y: size * 0.55), radius: 380, options: [])
+NSGraphicsContext.restoreGraphicsState()
 
 // Soft highlight on the top half.
 NSGraphicsContext.saveGraphicsState()
 shape.addClip()
-NSGradient(colors: [NSColor.white.withAlphaComponent(0.18), NSColor.white.withAlphaComponent(0)])!
+NSGradient(colors: [NSColor.white.withAlphaComponent(0.08), NSColor.white.withAlphaComponent(0)])!
     .draw(in: NSRect(x: rect.minX, y: rect.midY, width: rect.width, height: rect.height / 2), angle: -90)
 NSGraphicsContext.restoreGraphicsState()
 
 let config = NSImage.SymbolConfiguration(pointSize: 420, weight: .semibold)
-    .applying(.init(paletteColors: [.white]))
+    .applying(.init(paletteColors: [NSColor(red: 0.94, green: 0.91, blue: 0.87, alpha: 1)]))
 if let symbol = NSImage(systemSymbolName: "iphone.radiowaves.left.and.right", accessibilityDescription: nil)?
     .withSymbolConfiguration(config) {
     let s = symbol.size

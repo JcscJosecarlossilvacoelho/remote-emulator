@@ -23,7 +23,7 @@ struct LogText: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
             }
-            .background(Color(red: 0.10, green: 0.10, blue: 0.16))
+            .background(Theme.codeBackground)
             .onChange(of: process.lines.count) { proxy.scrollTo("bottom") }
             .onAppear { proxy.scrollTo("bottom") }
         }
@@ -32,8 +32,8 @@ struct LogText: View {
     private func color(for line: String) -> Color {
         if line.contains("ERROR") || line.contains("Error") { return Color(red: 1, green: 0.45, blue: 0.45) }
         if line.contains("WARN") { return Color(red: 1, green: 0.8, blue: 0.4) }
-        if line.hasPrefix("—") { return Color(red: 0.6, green: 0.55, blue: 1) }
-        return Color(red: 0.86, green: 0.88, blue: 0.95)
+        if line.hasPrefix("—") { return Theme.peach }
+        return Theme.codeText
     }
 }
 
@@ -72,7 +72,7 @@ struct MenuBarView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(device.name).font(.callout).lineLimit(1)
                             Text(device.claimedBy.map { "agent: \($0)" } ?? device.osVersion)
-                                .font(.caption2).foregroundStyle(device.claimedBy == nil ? .secondary : Color.purple)
+                                .font(.caption2).foregroundStyle(device.claimedBy == nil ? .secondary : Theme.agent)
                         }
                         Spacer()
                         Button { devices.shutdown(device) } label: { Image(systemName: "power") }
@@ -107,7 +107,7 @@ struct MenuBarView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.teal)
+            .tint(Theme.accent)
 
             HStack {
                 Button("Open dashboard", action: openDashboard)

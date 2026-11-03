@@ -38,6 +38,7 @@ extension View {
             .environmentObject(model.metro)
             .environmentObject(model.devices)
             .environmentObject(model.setup)
+            .environmentObject(model.control)
             .tint(Theme.accent)
     }
 }

@@ -284,6 +284,8 @@ private struct Inspector: View {
                 Divider()
                 HostSection()
                 Divider()
+                ControlSection()
+                Divider()
                 ActivitySection()
                 CoffeeFooter()
             }
@@ -459,6 +461,90 @@ private struct HostSection: View {
         } message: {
             Text("Remote agents will need the new prompt.")
         }
+    }
+}
+
+private struct ControlSection: View {
+    @EnvironmentObject private var control: ControlService
+    @EnvironmentObject private var host: HostService
+    @State private var copied = false
+    @State private var confirmEnable = false
+    @State private var confirmRotate = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                SectionLabel(text: "Remote control")
+                Spacer()
+                PillSwitch(isOn: control.enabled) {
+                    control.enabled ? control.setEnabled(false) : (confirmEnable = true)
+                }
+            }
+            Text("Lets your agent start Metro, switch the app's branch and run Claude Code or Codex here — only inside one folder, only through your tailnet.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+
+            if control.enabled {
+                HStack(spacing: 6) {
+                    InfoRow(label: "Folder", value: control.workRoot.map { ($0.path as NSString).abbreviatingWithTildeInPath } ?? "Not chosen",
+                            monospaced: true)
+                    Button("Choose…") { control.chooseWorkRoot() }.controlSize(.small)
+                }
+                Toggle(isOn: $control.allowAgents) {
+                    Text("Allow Claude Code & Codex runs").font(.system(size: 12.5))
+                }
+                .toggleStyle(.checkbox)
+                .disabled(control.workRoot == nil)
+                HStack(spacing: 2) {
+                    InfoRow(label: "Token", value: String(repeating: "•", count: 18), monospaced: true)
+                    IconButton(symbol: "doc.on.doc", help: "Copy control token") { host.copy(control.token) }
+                    IconButton(symbol: "arrow.triangle.2.circlepath", help: "Generate a new control token") { confirmRotate = true }
+                }
+                BrandButton(title: copied ? "Prompt copied!" : "Copy control prompt",
+                            symbol: copied ? "checkmark" : "sparkles") {
+                    host.copy(control.agentPrompt)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
+                }
+                if let error = control.lastError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+                }
+                ForEach(control.jobs.prefix(5)) { job in
+                    JobRow(job: job, process: job.process)
+                }
+            }
+        }
+        .confirmationDialog("Turn on remote control?", isPresented: $confirmEnable) {
+            Button("Turn on") { control.setEnabled(true) }
+        } message: {
+            Text("Anyone with the control token inside your tailnet can run Metro and, if you allow it, Claude Code or Codex in the folder you choose. Send the token only through a private secret request.")
+        }
+        .confirmationDialog("Generate a new control token?", isPresented: $confirmRotate) {
+            Button("Generate new token", role: .destructive) { control.rotateToken() }
+        } message: {
+            Text("Agents will need the new control prompt.")
+        }
+    }
+}
+
+private struct JobRow: View {
+    let job: ControlService.Job
+    @ObservedObject var process: ManagedProcess
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: process.isRunning ? "circle.dotted" : (process.exitCode == 0 ? "checkmark.circle.fill" : "xmark.circle.fill"))
+                .foregroundStyle(process.isRunning ? Theme.accent : (process.exitCode == 0 ? Theme.ok : Theme.warn))
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(job.tool.title) · \(job.directory.lastPathComponent)").font(.system(size: 12, weight: .medium)).lineLimit(1)
+                Text(job.prompt).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer()
+            if process.isRunning {
+                IconButton(symbol: "stop.fill", help: "Stop this job") { process.stop() }
+            }
+        }
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.04)))
     }
 }
 

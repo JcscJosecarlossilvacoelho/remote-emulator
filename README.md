@@ -137,6 +137,32 @@ claude mcp add --transport stdio --scope user agent-device -- agent-device mcp
 Several agents can work at the same time: each one uses its own `AGENT_DEVICE_SESSION`, and
 agent-device leases a different device to each session. The dashboard shows who holds what.
 
+## Remote control: delegate whole tasks (optional, off by default)
+
+Turn on **Remote control** in the sidebar, choose a projects folder (e.g. `~/WebstormProjects`) and
+copy the **control prompt** for your agent. It can then, through your tailnet only:
+
+- start / stop Metro for any app in that folder, and fast-forward the app's repo to a branch;
+- run **Claude Code** or **Codex** headless *on this Mac*, inside one project folder (new folders
+  allowed). Those runs drive the simulators themselves with agent-device and Metro with `re-metro`;
+- download results such as screenshots (`GET /control/file?path=…`) to send them back in chat.
+
+How runs are confined:
+
+| | Claude Code | Codex |
+|---|---|---|
+| Writes | Project folder only (file tools + OS sandbox) | Project folder only (`workspace-write` sandbox) |
+| Reads | Project folder + toolchains; rest of `~` denied | Not restricted by Codex's sandbox |
+| Network | npm and GitHub only | Off |
+| MCP / hooks | Off (`--strict-mcp-config`, `disableAllHooks`) | Your `config.toml` ignored; only agent-device MCP |
+| Devices | `agent-device` runs outside the sandbox | agent-device MCP tools, pre-approved |
+| Metro | `re-metro` (reads the token itself; the job never sees it) | Not available |
+
+The control API has its **own token** (`~/.agent-device-host/control-token`), separate from the
+simulator token, listens on 127.0.0.1:4320 and is published with `tailscale serve --set-path=/control`.
+`app/update` refuses to touch uncommitted work but runs your package manager's install, so only
+enable it for repos whose branches you trust.
+
 ## Security model
 
 - The proxy listens on **127.0.0.1 only**. Remote access goes exclusively through
@@ -153,6 +179,9 @@ agent-device leases a different device to each session. The dashboard shows who 
 |---|---|
 | `~/.agent-device-host/token` | Proxy bearer token (shared with terminal setups) |
 | `~/.agent-device-host/app-dir` | Active app folder for Metro |
+| `~/.agent-device-host/control-token` | Remote-control token (separate secret) |
+| `~/.agent-device-host/bin/re-metro` | Metro helper used by Claude Code runs |
+| `~/.agent-device-host/proxy.log` | Proxy output (token redacted) |
 | `~/.agent-device/` | agent-device state, sessions and logs |
 
 ## Troubleshooting

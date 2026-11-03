@@ -6,6 +6,8 @@ import Foundation
 final class ManagedProcess: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var lines: [String] = []
+    /// Exit status of the last run, once it has ended.
+    @Published private(set) var exitCode: Int32?
 
     let name: String
     private var process: Process?
@@ -21,12 +23,12 @@ final class ManagedProcess: ObservableObject {
     }
 
     func start(_ tool: String, _ args: [String], cwd: URL? = nil, environment extra: [String: String] = [:],
-               redacting secrets: [String] = []) throws {
+               redacting secrets: [String] = [], baseEnvironment: [String: String] = Shell.environment) throws {
         stop()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = [tool] + args
-        process.environment = Shell.environment.merging(extra) { _, new in new }
+        process.environment = baseEnvironment.merging(extra) { _, new in new }
         if let cwd { process.currentDirectoryURL = cwd }
         process.standardInput = FileHandle.nullDevice
 
@@ -48,6 +50,7 @@ final class ManagedProcess: ObservableObject {
             Task { @MainActor in
                 guard let self, self.process === proc else { return }
                 self.isRunning = false
+                self.exitCode = proc.terminationStatus
                 self.append("— \(self.name) exited (code \(proc.terminationStatus)) —\n")
             }
         }
@@ -55,6 +58,7 @@ final class ManagedProcess: ObservableObject {
         append("— starting \(name) —\n")
         try process.run()
         self.process = process
+        exitCode = nil
         isRunning = true
     }
 

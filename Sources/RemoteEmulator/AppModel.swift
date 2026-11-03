@@ -10,6 +10,7 @@ final class AppModel: ObservableObject {
     let metro = MetroService()
     let devices = DeviceService()
     let setup = SetupService()
+    let control = ControlService()
 
     @AppStorage("startHostOnLaunch") var startHostOnLaunch = true
     @AppStorage("onboardingCompleted") var onboardingCompleted = false
@@ -44,6 +45,7 @@ final class AppModel: ObservableObject {
         guard pollTask == nil else { return }
         if !onboardingCompleted && !isScreenshotRun { showOnboarding = true }
         scheduleSupportPrompt()
+        if !isScreenshotRun { control.attach(metro: metro, host: host) }
         pollTask = Task { [weak self] in
             guard let self else { return }
             await setup.runChecks()
@@ -122,6 +124,7 @@ final class AppModel: ObservableObject {
         pollTask?.cancel()
         host.process.stop()
         metro.process.stop()
+        control.jobs.forEach { $0.process.stop() }
     }
 
     func openDashboard() {

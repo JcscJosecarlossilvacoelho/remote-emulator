@@ -7,6 +7,9 @@ enum HostPaths {
     static let directory = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".agent-device-host")
     static let token = directory.appendingPathComponent("token")
     static let appDir = directory.appendingPathComponent("app-dir")
+    /// Separate secret for the control API (Metro, Claude Code, Codex): leaking the
+    /// simulator token must not also hand out a coding agent on this Mac.
+    static let controlToken = directory.appendingPathComponent("control-token")
 
     static func ensureDirectory() {
         let fm = FileManager.default
@@ -16,22 +19,22 @@ enum HostPaths {
     }
 
     /// Reads the proxy token, creating a strong random one (0600) on first use.
-    static func readOrCreateToken() -> String {
+    static func readOrCreateToken(at file: URL = token) -> String {
         ensureDirectory()
-        if let existing = try? String(contentsOf: token, encoding: .utf8)
+        if let existing = try? String(contentsOf: file, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines), !existing.isEmpty {
             return existing
         }
-        return rotateToken()
+        return rotateToken(at: file)
     }
 
     @discardableResult
-    static func rotateToken() -> String {
+    static func rotateToken(at file: URL = token) -> String {
         ensureDirectory()
         var bytes = [UInt8](repeating: 0, count: 32)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         let value = bytes.map { String(format: "%02x", $0) }.joined()
-        FileManager.default.createFile(atPath: token.path, contents: Data(value.utf8), attributes: [.posixPermissions: 0o600])
+        FileManager.default.createFile(atPath: file.path, contents: Data(value.utf8), attributes: [.posixPermissions: 0o600])
         return value
     }
 

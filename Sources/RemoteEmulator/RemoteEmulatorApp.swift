@@ -50,8 +50,19 @@ private struct MenuBarIcon: View {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var termSource: DispatchSourceSignal?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         Task { @MainActor in AppModel.shared.boot() }
+        // `kill`/`pkill` skip applicationWillTerminate; stop the host anyway so no proxy is orphaned.
+        signal(SIGTERM, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        source.setEventHandler {
+            MainActor.assumeIsolated { AppModel.shared.shutdown() }
+            exit(0)
+        }
+        source.resume()
+        termSource = source
         let args = CommandLine.arguments
         if let index = args.firstIndex(of: "--screenshot"), index + 1 < args.count {
             let page = args.firstIndex(of: "--page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "main"

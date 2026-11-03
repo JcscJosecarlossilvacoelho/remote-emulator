@@ -55,6 +55,8 @@ final class ManagedProcess: ObservableObject {
         isRunning = true
     }
 
+    var pid: Int32? { process?.isRunning == true ? process?.processIdentifier : nil }
+
     func stop() {
         guard let process, process.isRunning else { return }
         process.interrupt()

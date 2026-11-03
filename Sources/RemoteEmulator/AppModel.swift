@@ -49,6 +49,11 @@ final class AppModel: ObservableObject {
             await setup.runChecks()
             await host.poll()
             await metro.poll()
+            // A proxy nobody manages (left over from an earlier run) serves a stale token: replace it.
+            setup.findExternalAgents()
+            if case .external = host.status, setup.externalAgents.isEmpty, !isScreenshotRun {
+                await host.stopForeignProxies()
+            }
             if onboardingCompleted, startHostOnLaunch, !isScreenshotRun, !host.status.isUp { host.start() }
             var tick = 0
             while !Task.isCancelled {
@@ -76,6 +81,18 @@ final class AppModel: ObservableObject {
             guard !showOnboarding else { return }
             lastSupportPrompt = Date().timeIntervalSince1970
             showSupport = true
+        }
+    }
+
+    /// New token everywhere: our proxy restarts with it; one we don't own is replaced
+    /// (or, under a LaunchAgent, restarted by launchd, whose script re-reads the token file).
+    func rotateToken() {
+        host.rotateToken()
+        guard case .external = host.status else { return }
+        Task {
+            await host.stopForeignProxies()
+            setup.findExternalAgents()
+            if setup.externalAgents.isEmpty { host.start() }
         }
     }
 

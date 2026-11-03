@@ -109,6 +109,20 @@ final class HostService: ObservableObject {
         if process.isRunning { restart() }
     }
 
+    /// Stops `agent-device proxy` processes on our port that this app doesn't own,
+    /// e.g. one orphaned by a previous app run. They keep serving an old token.
+    func stopForeignProxies() async {
+        let result = await Shell.run("pgrep", ["-f", "agent-device proxy --host 127.0.0.1 --port \(port)"], timeout: 10)
+        let own = process.pid
+        let pids = result.stdout.split(whereSeparator: \.isNewline).compactMap { Int32($0) }.filter { $0 != own }
+        guard !pids.isEmpty else { return }
+        pids.forEach { kill($0, SIGTERM) }
+        for _ in 0..<20 where await health() != nil {
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        status = .stopped
+    }
+
     func poll() async {
         if cliVersion == nil, Shell.which("agent-device") != nil {
             let result = await Shell.run("agent-device", ["--version"], timeout: 10)

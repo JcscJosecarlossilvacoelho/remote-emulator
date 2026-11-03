@@ -429,6 +429,7 @@ private struct AppSection: View {
 }
 
 private struct HostSection: View {
+    @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var host: HostService
     @State private var reveal = false
     @State private var tokenCopied = false
@@ -454,7 +455,7 @@ private struct HostSection: View {
                 .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
         }
         .confirmationDialog("Generate a new token?", isPresented: $confirmRotate) {
-            Button("Generate new token", role: .destructive) { host.rotateToken() }
+            Button("Generate new token", role: .destructive) { model.rotateToken() }
         } message: {
             Text("Remote agents will need the new prompt.")
         }
